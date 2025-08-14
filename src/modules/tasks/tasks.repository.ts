@@ -481,6 +481,15 @@ export const TasksRepository = {
       }
 
       if (update.status) {
+        if (update.status === "in_progress") {
+          update.startedAt = new Date();
+        }
+        if (update.status === "completed") {
+          update.completedAt = new Date();
+        }
+        if (update.status === "cancelled") {
+          update.cancelledAt = new Date();
+        }
         const history = {
           from: existingTask?.status,
           to: update.status,
