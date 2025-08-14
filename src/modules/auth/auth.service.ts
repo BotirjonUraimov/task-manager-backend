@@ -39,3 +39,17 @@ export async function login(email: string, password: string) {
     throw error;
   }
 }
+
+export async function logout() {
+  return { message: "Logged out successfully" };
+}
+
+export async function me(userId: string) {
+  const user = await UserModel.findById(userId);
+  return {
+    id: user?.id,
+    name: user?.name,
+    email: user?.email,
+    role: user?.role,
+  };
+}
