@@ -586,15 +586,28 @@ export const TasksRepository = {
   },
 
   async deleteById(id: string): Promise<boolean> {
-    const res = await TaskModel.findByIdAndDelete(id);
-    return Boolean(res);
+    try {
+      const res = await TaskModel.findByIdAndDelete(id);
+      return Boolean(res);
+    } catch (error: any) {
+      logger.error("Error deleting task in repository", error.message);
+      throw error;
+    }
   },
 
   async deleteByIdAndCreator(id: string, userId: string): Promise<boolean> {
-    const res = await TaskModel.findOneAndDelete({
-      _id: id,
-      createdBy: userId,
-    });
-    return Boolean(res);
+    try {
+      const res = await TaskModel.findOneAndDelete({
+        _id: id,
+        createdBy: userId,
+      });
+      if (!res) {
+        throw new Error("Task not found");
+      }
+      return Boolean(res);
+    } catch (error: any) {
+      logger.error("Error deleting task in repository", error.message);
+      throw error;
+    }
   },
 };
