@@ -49,6 +49,10 @@ PORT=3000
 MONGODB_URI=mongodb://localhost:27017/mohirdev_tasks
 JWT_SECRET=change-me-in-prod
 JWT_EXPIRES_IN=1h
+
+# Logging (optional)
+LOG_FILE=/var/log/express.log
+LOG_LEVEL=info
 ```
 
 ### Run in development
@@ -73,6 +77,33 @@ npm start
 - `npm run build`: Compile TypeScript to `dist/`
 - `npm start`: Run compiled app from `dist/`
 - `npm run clean`: Remove `dist/`
+
+### Logging
+
+The app uses Pino logger with environment-based configuration:
+
+- **Development**: Pretty-printed logs to console with colors
+- **Production**: Structured JSON logs to file (default: `/var/log/express.log`)
+
+**Log configuration:**
+
+- `LOG_FILE`: Custom log file path (default: `/var/log/express.log`)
+- `LOG_LEVEL`: Log level (default: `debug` in dev, `info` in prod)
+
+**Examples:**
+
+```bash
+# Custom log file
+LOG_FILE=./logs/app.log npm start
+
+# Custom log level
+LOG_LEVEL=warn npm start
+
+# Both
+LOG_FILE=./logs/app.log LOG_LEVEL=error npm start
+```
+
+**Note**: Ensure the log directory exists and has write permissions, or the logger will fall back to stdout.
 
 ---
 
