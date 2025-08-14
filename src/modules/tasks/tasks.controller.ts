@@ -19,6 +19,21 @@ export const TasksController = {
     return res.json(tasks);
   },
 
+  async listAssigned(req: Request, res: Response) {
+    logger.info("Listing assigned tasks in controller");
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 10));
+    const sortBy = req.query.sortBy ? String(req.query.sortBy) : "createdAt";
+    const sortOrder = req.query.sortOrder === "asc" ? "asc" : "desc";
+    const tasks = await TasksService.listAssigned(
+      {
+        id: req.user!.sub,
+      },
+      { page, limit, sortBy, sortOrder }
+    );
+    return res.json(tasks);
+  },
+
   async get(req: Request, res: Response) {
     console.log("Controller get - params:", req.params, "user:", req.user);
     const task = await TasksService.get(req.params.id, {

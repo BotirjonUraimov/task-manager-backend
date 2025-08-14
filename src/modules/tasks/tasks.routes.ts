@@ -137,11 +137,11 @@ router.get(
   authorize(["admin", "user"]),
   TasksController.list
 );
-router.put(
-  "/:id",
+router.get(
+  "/assigned",
   authenticate,
-  authorize(["admin", "user"]),
-  TasksController.update
+  authorize(["user"]),
+  TasksController.listAssigned
 );
 router.get(
   "/:id",
@@ -150,17 +150,23 @@ router.get(
   TasksController.get
 );
 
-router.delete(
-  "/:id",
-  authenticate,
-  authorize(["admin", "user"]),
-  TasksController.remove
-);
 router.post(
   "/",
   authenticate,
   authorize(["admin", "user"]),
   TasksController.create
+);
+router.put(
+  "/:id",
+  authenticate,
+  authorize(["admin", "user"]),
+  TasksController.update
+);
+router.delete(
+  "/:id",
+  authenticate,
+  authorize(["admin", "user"]),
+  TasksController.remove
 );
 
 export default router;

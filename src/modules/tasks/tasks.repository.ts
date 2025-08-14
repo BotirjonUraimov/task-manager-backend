@@ -153,6 +153,81 @@ export const TasksRepository = {
     };
   },
 
+  async listByAssignedTo(
+    userId: string,
+    options: IListOptions = {}
+  ): Promise<IBasePaginationResDTO<ITask>> {
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+    } = options;
+    const skip = (page - 1) * limit;
+    const sort: Record<string, 1 | -1> = {
+      [sortBy]: sortOrder === "asc" ? 1 : -1,
+    };
+    const count = await TaskModel.countDocuments({ assignedTo: userId });
+    const tasks = await TaskModel.aggregate([
+      { $match: { assignedTo: userId } },
+      {
+        $addFields: {
+          assignedByObjId: { $toObjectId: "$assignedBy" },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "assignedByObjId",
+          foreignField: "_id",
+          as: "assignedByAdmin",
+        },
+      },
+      {
+        $unwind: {
+          path: "$assignedByAdmin",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      { $sort: sort },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $project: {
+          _id: 0,
+          id: { $toString: "$_id" },
+          title: 1,
+          description: 1,
+          dueDate: 1,
+          priority: 1,
+          status: 1,
+          tags: 1,
+          assignedTo: 1,
+          assignedByAdmin: {
+            $cond: {
+              if: { $ne: ["$assignedByAdmin", null] },
+              then: {
+                id: { $toString: "$assignedByAdmin._id" },
+                name: "$assignedByAdmin.name",
+                email: "$assignedByAdmin.email",
+                role: "$assignedByAdmin.role",
+              },
+              else: null,
+            },
+          },
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      },
+    ]).exec();
+    return {
+      data: tasks,
+      total: count,
+      page,
+      limit,
+    };
+  },
+
   async listByCreator(
     userId: string,
     options: IListOptions = {}

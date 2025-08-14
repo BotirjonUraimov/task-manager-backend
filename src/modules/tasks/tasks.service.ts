@@ -30,6 +30,16 @@ export const TasksService = {
       return TasksRepository.listAll(options);
     return TasksRepository.listByCreator(requestingUser.id, options);
   },
+
+  async listAssigned(
+    requestingUser: {
+      id: string;
+    },
+    options: IListOptions = {}
+  ): Promise<IBasePaginationResDTO<ITask>> {
+    return TasksRepository.listByAssignedTo(requestingUser.id, options);
+  },
+
   async get(
     id: string,
     requestingUser: { id: string; role: "admin" | "user" }
