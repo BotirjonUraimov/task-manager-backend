@@ -230,7 +230,12 @@ export const TasksRepository = {
           },
           createdAt: 1,
           updatedAt: 1,
-          history: 1,
+          history: {
+            from: 1,
+            to: 1,
+            at: 1,
+            by: 1,
+          },
         },
       },
     ]).exec();
