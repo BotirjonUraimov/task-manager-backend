@@ -1,7 +1,6 @@
 import { IBasePaginationResDTO } from "../../common/interfaces/base/base-pagination.interface";
 import { IListOptions } from "../../common/interfaces/base/list-options.interface";
 import { ITask } from "../../common/interfaces/tasks/task.interface";
-import { UserModel } from "../users/users.model";
 import { TaskDocument, TaskModel } from "./tasks.model";
 import logger from "../../lib/logger";
 
@@ -47,39 +46,101 @@ export const TasksRepository = {
     const sort: Record<string, 1 | -1> = {
       [sortBy]: sortOrder === "asc" ? 1 : -1,
     };
-    const count = await TaskModel.countDocuments();
-    const tasks = await TaskModel.find()
-      .sort(sort)
-      .skip(skip)
-      .limit(limit)
-      .lean();
 
-    const dtoTasks = tasks.map((d: any) => toDTO(d));
+    const [result] = await TaskModel.aggregate([
+      { $sort: sort },
+      {
+        $facet: {
+          data: [
+            { $skip: skip },
+            { $limit: limit },
+            // Convert string IDs to ObjectId for lookups
+            {
+              $addFields: {
+                createdByObjId: { $toObjectId: "$createdBy" },
+                assignedToObjId: {
+                  $cond: [
+                    { $ifNull: ["$assignedTo", false] },
+                    { $toObjectId: "$assignedTo" },
+                    null,
+                  ],
+                },
+              },
+            },
+            {
+              $lookup: {
+                from: "users",
+                localField: "createdByObjId",
+                foreignField: "_id",
+                as: "createdByUser",
+              },
+            },
+            {
+              $unwind: {
+                path: "$createdByUser",
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+            {
+              $lookup: {
+                from: "users",
+                localField: "assignedToObjId",
+                foreignField: "_id",
+                as: "assignedToUser",
+              },
+            },
+            {
+              $unwind: {
+                path: "$assignedToUser",
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+            {
+              $project: {
+                id: { $toString: "$_id" },
+                title: 1,
+                description: 1,
+                dueDate: 1,
+                priority: 1,
+                status: 1,
+                tags: 1,
 
-    const creatorIds = Array.from(new Set(dtoTasks.map((t) => t.createdBy)));
-    const assigneeIds = Array.from(
-      new Set(
-        dtoTasks.map((t) => t.assignedTo).filter((v): v is string => Boolean(v))
-      )
-    );
-    const allUserIds = Array.from(new Set([...creatorIds, ...assigneeIds]));
-    const users = await UserModel.find({ _id: { $in: allUserIds } }).lean();
-    const userMap = new Map<string, IUserPublic>(
-      users.map((u: any) => [
-        u._id.toString(),
-        { id: u._id.toString(), name: u.name, email: u.email, role: u.role },
-      ])
-    );
-
-    const data: ITaskAdminRes[] = dtoTasks.map((t) => ({
-      ...t,
-      createdByUser: userMap.get(t.createdBy) ?? null,
-      assignedToUser: t.assignedTo ? userMap.get(t.assignedTo) ?? null : null,
-    }));
-
+                createdAt: 1,
+                updatedAt: 1,
+                createdByUser: {
+                  id: { $toString: "$createdByUser._id" },
+                  name: "$createdByUser.name",
+                  email: "$createdByUser.email",
+                  role: "$createdByUser.role",
+                },
+                assignedToUser: {
+                  $cond: [
+                    { $ifNull: ["$assignedToUser", false] },
+                    {
+                      id: { $toString: "$assignedToUser._id" },
+                      name: "$assignedToUser.name",
+                      email: "$assignedToUser.email",
+                      role: "$assignedToUser.role",
+                    },
+                    null,
+                  ],
+                },
+              },
+            },
+          ],
+          meta: [{ $count: "total" }],
+        },
+      },
+      {
+        $project: {
+          data: 1,
+          total: { $ifNull: [{ $arrayElemAt: ["$meta.total", 0] }, 0] },
+        },
+      },
+    ]).exec();
     return {
-      data,
-      total: count,
+      data: result.data ?? [],
+      total: result.total ?? 0,
       page,
       limit,
     };
