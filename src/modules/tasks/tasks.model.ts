@@ -1,6 +1,7 @@
-import mongoose, { Document, Model, Schema } from "mongoose";
+import mongoose, { Document, Model, Schema, Types } from "mongoose";
 
 export interface TaskDocument extends Document {
+  _id: Types.ObjectId;
   title: string;
   description: string;
   dueDate: Date;

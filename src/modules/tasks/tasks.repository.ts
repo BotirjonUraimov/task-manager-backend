@@ -2,10 +2,11 @@ import { IBasePaginationResDTO } from "../../common/interfaces/base/base-paginat
 import { IListOptions } from "../../common/interfaces/base/list-options.interface";
 import { ITask } from "../../common/interfaces/tasks/task.interface";
 import { TaskDocument, TaskModel } from "./tasks.model";
+import logger from "../../lib/logger";
 
 function toDTO(doc: TaskDocument): ITask {
   return {
-    id: doc.id.toString(),
+    id: doc._id.toString(),
     title: doc.title,
     description: doc.description,
     dueDate: doc.dueDate,
@@ -92,6 +93,7 @@ export const TasksRepository = {
   },
 
   async insert(dto: Omit<ITask, "id">): Promise<ITask> {
+    logger.info("Inserting task in repository");
     const task = await TaskModel.create(dto);
     return toDTO(task);
   },

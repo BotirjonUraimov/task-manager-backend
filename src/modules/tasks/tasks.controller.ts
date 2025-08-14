@@ -27,6 +27,11 @@ export const TasksController = {
     return res.json(task);
   },
   async create(req: Request, res: Response) {
+    logger.info("Creating task in controller");
+    if (!req.body || typeof req.body !== "object") {
+      logger.error("Invalid JSON body");
+      return res.status(400).json({ error: "Invalid JSON body" });
+    }
     const task = await TasksService.create(req.body, {
       id: req.user!.sub,
       role: req.user!.role,

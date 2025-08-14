@@ -3,11 +3,12 @@ import { TasksRepository } from "./tasks.repository";
 import { IBasePaginationResDTO } from "../../common/interfaces/base/base-pagination.interface";
 import { IListOptions } from "../../common/interfaces/base/list-options.interface";
 import { ITask } from "../../common/interfaces/tasks/task.interface";
+import logger from "../../lib/logger";
 
 const CreateTaskSchema = z.object({
   title: z.string().min(1),
   description: z.string().min(1),
-  dueDate: z.date(),
+  dueDate: z.coerce.date(),
   priority: z.enum(["low", "medium", "high"]),
   status: z.enum(["pending", "in_progress", "completed", "cancelled"]),
   assignedTo: z.string().optional(),
@@ -39,14 +40,20 @@ export const TasksService = {
     input: unknown,
     requestingUser: { id: string; role: "admin" | "user" }
   ): Promise<ITask> {
-    const parsed = CreateTaskSchema.parse(input);
-    const normalized = {
-      ...parsed,
-      assignedTo: parsed.assignedTo ?? null,
-      tags: parsed.tags ?? [],
-      createdBy: requestingUser.id,
-    } as Omit<ITask, "id"> & { createdBy: string } as any;
-    return TasksRepository.insert(normalized as any);
+    try {
+      logger.info("Creating task in service");
+      const parsed = CreateTaskSchema.parse(input);
+      const normalized = {
+        ...parsed,
+        assignedTo: parsed.assignedTo ?? null,
+        tags: parsed.tags ?? [],
+        createdBy: requestingUser.id,
+      } as Omit<ITask, "id"> & { createdBy: string } as any;
+      return TasksRepository.insert(normalized as any);
+    } catch (error: any) {
+      logger.error("Error creating task in service", error.message);
+      throw error;
+    }
   },
   async update(
     id: string,
