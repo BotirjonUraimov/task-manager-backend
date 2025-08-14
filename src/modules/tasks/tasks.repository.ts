@@ -169,17 +169,31 @@ export const TasksRepository = {
     };
     console.log("userId", userId);
     const count = await TaskModel.countDocuments({ createdBy: userId });
-    const tasks = await TaskModel.find({ createdBy: userId })
-      .sort(sort)
-      .skip(skip)
-      .limit(limit)
-      .lean();
+    const tasks = await TaskModel.aggregate([
+      { $match: { createdBy: userId } },
+      { $sort: sort },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $project: {
+          _id: 0,
+          id: { $toString: "$_id" },
+          title: 1,
+          description: 1,
+          dueDate: 1,
+          priority: 1,
+          status: 1,
+          tags: 1,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      },
+    ]).exec();
 
     console.log("tasks", tasks);
     console.log("count", count);
-    const dtoTasks = tasks.map((d: any) => toDTO(d));
     return {
-      data: dtoTasks,
+      data: tasks,
       total: count,
       page,
       limit,
