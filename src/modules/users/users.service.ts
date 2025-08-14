@@ -4,6 +4,8 @@ import { UsersRepository, UserDTO } from "./users.repository";
 const CreateUserSchema = z.object({
   name: z.string().min(1),
   email: z.string().email(),
+  password: z.string().min(8),
+  role: z.enum(["admin", "user"]),
 });
 
 export type CreateUserInput = z.infer<typeof CreateUserSchema>;

@@ -1,4 +1,3 @@
-import { useInMemory } from "../../config/env";
 import { UserModel, UserDocument } from "./users.model";
 
 export interface UserDTO {
@@ -15,34 +14,17 @@ function toDTO(doc: UserDocument): UserDTO {
   };
 }
 
-// Simple in-memory fallback
-const memoryStore: UserDTO[] = [];
-
 export const UsersRepository = {
   async list(): Promise<UserDTO[]> {
-    if (useInMemory) return memoryStore;
-    const docs = await UserModel.find().lean();
-    return docs.map((d: any) => ({
-      id: d._id.toString(),
-      name: d.name,
-      email: d.email,
-    }));
+    const users = await UserModel.find().lean();
+    return users.map((d: any) => toDTO(d));
   },
   async get(id: string): Promise<UserDTO | undefined> {
-    if (useInMemory) return memoryStore.find((u) => u.id === id);
-    const doc = await UserModel.findById(id);
-    return doc ? toDTO(doc) : undefined;
+    const user = await UserModel.findById(id);
+    return user ? toDTO(user) : undefined;
   },
-  async insert(user: Omit<UserDTO, "id">): Promise<UserDTO> {
-    if (useInMemory) {
-      const created: UserDTO = {
-        id: Math.random().toString(36).slice(2),
-        ...user,
-      };
-      memoryStore.push(created);
-      return created;
-    }
-    const doc = await UserModel.create(user);
-    return toDTO(doc);
+  async insert(dto: Omit<UserDTO, "id">): Promise<UserDTO> {
+    const user = await UserModel.create(dto);
+    return toDTO(user);
   },
 };
