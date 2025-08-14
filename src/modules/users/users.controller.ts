@@ -1,8 +1,10 @@
 import { Request, Response } from "express";
 import { UsersService } from "./users.service";
+import logger from "../../lib/logger";
 
 export const UsersController = {
   async list(_req: Request, res: Response) {
+    logger.info("Listing users in controller");
     const users = await UsersService.list();
     return res.json(users);
   },

@@ -1,21 +1,25 @@
+import logger from "../../lib/logger";
 import { UserModel, UserDocument } from "./users.model";
 
 export interface UserDTO {
   id: string;
   name: string;
   email: string;
+  role: "admin" | "user";
 }
 
 function toDTO(doc: UserDocument): UserDTO {
   return {
-    id: doc.id,
+    id: doc._id.toString(),
     name: doc.name,
     email: doc.email,
+    role: doc.role as "admin" | "user",
   };
 }
 
 export const UsersRepository = {
   async list(): Promise<UserDTO[]> {
+    logger.info("Listing users in repository");
     const users = await UserModel.find().lean();
     return users.map((d: any) => toDTO(d));
   },
