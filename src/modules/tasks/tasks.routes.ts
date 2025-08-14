@@ -8,6 +8,31 @@ import { authenticate, authorize } from "../../middlewares/auth";
  *   get:
  *     summary: List tasks
  *     tags: [Tasks]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         description: Page number (default 1)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Page size (default 10, max 100)
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *         description: Field to sort by (default createdAt)
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *         description: Sort order (default desc)
  *     responses:
  *       200:
  *         description: A list of tasks
@@ -69,7 +94,12 @@ import { authenticate, authorize } from "../../middlewares/auth";
 
 const router = Router();
 
-router.get("/", authenticate, authorize(["admin"]), TasksController.list);
+router.get(
+  "/",
+  authenticate,
+  authorize(["admin", "user"]),
+  TasksController.list
+);
 router.get(
   "/:id",
   authenticate,
@@ -81,6 +111,18 @@ router.post(
   authenticate,
   authorize(["admin", "user"]),
   TasksController.create
+);
+router.put(
+  "/:id",
+  authenticate,
+  authorize(["admin", "user"]),
+  TasksController.update
+);
+router.delete(
+  "/:id",
+  authenticate,
+  authorize(["admin", "user"]),
+  TasksController.remove
 );
 
 export default router;

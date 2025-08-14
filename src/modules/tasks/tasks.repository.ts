@@ -1,17 +1,9 @@
+import { IBasePaginationResDTO } from "../../common/interfaces/base-pagination.interface";
+import { IListOptions } from "../../common/interfaces/list-options.interface";
+import { ITask } from "../../common/interfaces/tasks/task.interface";
 import { TaskDocument, TaskModel } from "./tasks.model";
 
-export interface TaskDTO {
-  id: string;
-  title: string;
-  description: string;
-  dueDate: Date;
-  priority: string;
-  status: string;
-  assignedTo: string | null;
-  tags: string[];
-}
-
-function toDTO(doc: TaskDocument): TaskDTO {
+function toDTO(doc: TaskDocument): ITask {
   return {
     id: doc.id.toString(),
     title: doc.title,
@@ -25,18 +17,113 @@ function toDTO(doc: TaskDocument): TaskDTO {
 }
 
 export const TasksRepository = {
-  async list(): Promise<TaskDTO[]> {
-    const tasks = await TaskModel.find().lean();
-    return tasks.map((d: any) => toDTO(d));
+  async listAll(
+    options: IListOptions = {}
+  ): Promise<IBasePaginationResDTO<ITask>> {
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+    } = options;
+    const skip = (page - 1) * limit;
+    const sort: Record<string, 1 | -1> = {
+      [sortBy]: sortOrder === "asc" ? 1 : -1,
+    };
+    const count = await TaskModel.countDocuments();
+    const tasks = await TaskModel.find()
+      .sort(sort)
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const dtoTasks = tasks.map((d: any) => toDTO(d));
+    return {
+      data: dtoTasks,
+      total: count,
+      page,
+      limit,
+    };
   },
 
-  async get(id: string): Promise<TaskDTO | undefined> {
+  async listByCreator(
+    userId: string,
+    options: IListOptions = {}
+  ): Promise<IBasePaginationResDTO<ITask>> {
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+    } = options;
+    const skip = (page - 1) * limit;
+    const sort: Record<string, 1 | -1> = {
+      [sortBy]: sortOrder === "asc" ? 1 : -1,
+    };
+    const count = await TaskModel.countDocuments({ createdBy: userId });
+    const tasks = await TaskModel.find({ createdBy: userId })
+      .sort(sort)
+      .skip(skip)
+      .limit(limit)
+      .lean();
+    const dtoTasks = tasks.map((d: any) => toDTO(d));
+    return {
+      data: dtoTasks,
+      total: count,
+      page,
+      limit,
+    };
+  },
+
+  async get(id: string): Promise<ITask | undefined> {
     const task = await TaskModel.findById(id);
     return task ? toDTO(task) : undefined;
   },
 
-  async insert(dto: Omit<TaskDTO, "id">): Promise<TaskDTO> {
+  async getByIdAndCreator(
+    id: string,
+    userId: string
+  ): Promise<ITask | undefined> {
+    const task = await TaskModel.findOne({ _id: id, createdBy: userId });
+    return task ? toDTO(task) : undefined;
+  },
+
+  async insert(dto: Omit<ITask, "id">): Promise<ITask> {
     const task = await TaskModel.create(dto);
     return toDTO(task);
+  },
+
+  async updateById(
+    id: string,
+    update: Partial<Omit<ITask, "id">>
+  ): Promise<ITask | undefined> {
+    const task = await TaskModel.findByIdAndUpdate(id, update, { new: true });
+    return task ? toDTO(task) : undefined;
+  },
+
+  async updateByIdAndCreator(
+    id: string,
+    userId: string,
+    update: Partial<Omit<ITask, "id">>
+  ): Promise<ITask | undefined> {
+    const task = await TaskModel.findOneAndUpdate(
+      { _id: id, createdBy: userId },
+      update,
+      { new: true }
+    );
+    return task ? toDTO(task) : undefined;
+  },
+
+  async deleteById(id: string): Promise<boolean> {
+    const res = await TaskModel.findByIdAndDelete(id);
+    return Boolean(res);
+  },
+
+  async deleteByIdAndCreator(id: string, userId: string): Promise<boolean> {
+    const res = await TaskModel.findOneAndDelete({
+      _id: id,
+      createdBy: userId,
+    });
+    return Boolean(res);
   },
 };

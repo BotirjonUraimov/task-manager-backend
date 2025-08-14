@@ -1,18 +1,52 @@
 import { Request, Response } from "express";
 import { TasksService } from "./tasks.service";
+import logger from "../../lib/logger";
 
 export const TasksController = {
-  async list(_req: Request, res: Response) {
-    const tasks = await TasksService.list();
+  async list(req: Request, res: Response) {
+    logger.info("Listing tasks in controller");
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 10));
+    const sortBy = req.query.sortBy ? String(req.query.sortBy) : "createdAt";
+    const sortOrder = req.query.sortOrder === "asc" ? "asc" : "desc";
+    const tasks = await TasksService.list(
+      {
+        id: req.user!.sub,
+        role: req.user!.role,
+      },
+      { page, limit, sortBy, sortOrder }
+    );
     return res.json(tasks);
   },
   async get(req: Request, res: Response) {
-    const task = await TasksService.get(req.params.id);
+    const task = await TasksService.get(req.params.id, {
+      id: req.user!.sub,
+      role: req.user!.role,
+    });
     if (!task) return res.status(404).json({ error: "Task not found" });
     return res.json(task);
   },
   async create(req: Request, res: Response) {
-    const task = await TasksService.create(req.body);
+    const task = await TasksService.create(req.body, {
+      id: req.user!.sub,
+      role: req.user!.role,
+    });
     return res.status(201).json(task);
+  },
+  async update(req: Request, res: Response) {
+    const updated = await TasksService.update(req.params.id, req.body, {
+      id: req.user!.sub,
+      role: req.user!.role,
+    });
+    if (!updated) return res.status(404).json({ error: "Task not found" });
+    return res.json(updated);
+  },
+  async remove(req: Request, res: Response) {
+    const ok = await TasksService.remove(req.params.id, {
+      id: req.user!.sub,
+      role: req.user!.role,
+    });
+    if (!ok) return res.status(404).json({ error: "Task not found" });
+    return res.status(204).send();
   },
 };

@@ -18,7 +18,9 @@ declare global {
 export function authenticate(req: Request, res: Response, next: NextFunction) {
   const header = req.headers.authorization;
   if (!header?.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "Unauthorized" });
+    return res
+      .status(401)
+      .json({ error: "Unauthorized, you are not authenticated" });
   }
   const token = header.slice("Bearer ".length);
   try {
@@ -32,9 +34,14 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
 
 export function authorize(roles: Array<AuthPayload["role"]>) {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+    if (!req.user)
+      return res
+        .status(401)
+        .json({ error: "Unauthorized, you are not authenticated" });
     if (!roles.includes(req.user.role))
-      return res.status(403).json({ error: "Forbidden" });
+      return res.status(403).json({
+        error: "Forbidden, you are not authorized to access this resource",
+      });
     return next();
   };
 }
