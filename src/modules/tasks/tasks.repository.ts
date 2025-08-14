@@ -671,7 +671,7 @@ export const TasksRepository = {
             {
               $project: {
                 assignedTo: 1,
-                durMs: { $subtract: ["$updatedAt", "$createdAt"] },
+                durMs: { $subtract: ["$completedAt", "$createdAt"] },
               },
             },
             {
