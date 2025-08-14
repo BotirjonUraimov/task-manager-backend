@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { UsersController } from "./users.controller";
+import { authenticate, authorize } from "../../middlewares/auth";
 
 /**
  * @openapi
@@ -48,7 +49,7 @@ import { UsersController } from "./users.controller";
 
 const router = Router();
 
-router.get("/", UsersController.list);
+router.get("/", authenticate, authorize(["admin"]), UsersController.list);
 router.get("/:id", UsersController.get);
 router.post("/", UsersController.create);
 
