@@ -232,12 +232,65 @@ export const TasksRepository = {
     return task[0] || undefined;
   },
 
-  async getByIdAndCreator(
+  async getByIdAndCreatorOrAssignedTo(
     id: string,
     userId: string
   ): Promise<ITask | undefined> {
-    const task = await TaskModel.findOne({ _id: id, createdBy: userId });
-    return task ? toDTO(task) : undefined;
+    console.log("id", id);
+    console.log("userId", userId);
+
+    const task = await TaskModel.aggregate([
+      { $match: { _id: new mongoose.Types.ObjectId(id) } },
+      {
+        $addFields: {
+          createdByObjId: { $toObjectId: "$createdBy" },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "createdByObjId",
+          foreignField: "_id",
+          as: "createdByUser",
+        },
+      },
+      {
+        $unwind: {
+          path: "$createdByUser",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          id: { $toString: "$_id" },
+          title: 1,
+          description: 1,
+          dueDate: 1,
+          priority: 1,
+          status: 1,
+          tags: 1,
+          createdByUser: {
+            $cond: {
+              if: { $ne: ["$createdByUser", null] },
+              then: {
+                id: { $toString: "$createdByUser._id" },
+                name: "$createdByUser.name",
+                email: "$createdByUser.email",
+                role: "$createdByUser.role",
+              },
+              else: null,
+            },
+          },
+        },
+      },
+    ]).exec();
+
+    // const task = await TaskModel.findOne({
+    //   _id: id,
+    //   $or: [{ createdBy: userId }, { assignedTo: userId }],
+    // });
+    return task[0] || undefined;
   },
 
   async insert(dto: Omit<ITask, "id">): Promise<ITask> {

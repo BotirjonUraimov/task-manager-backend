@@ -34,7 +34,7 @@ export const TasksService = {
     requestingUser: { id: string; role: "admin" | "user" }
   ): Promise<ITask | undefined> {
     if (requestingUser.role === "admin") return TasksRepository.get(id);
-    return TasksRepository.getByIdAndCreator(id, requestingUser.id);
+    return TasksRepository.getByIdAndCreatorOrAssignedTo(id, requestingUser.id);
   },
 
   async create(
