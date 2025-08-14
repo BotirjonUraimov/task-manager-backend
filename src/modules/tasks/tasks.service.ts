@@ -34,6 +34,7 @@ export const TasksService = {
     id: string,
     requestingUser: { id: string; role: "admin" | "user" }
   ): Promise<ITask | undefined> {
+    console.log("Service get - id:", id, "user:", requestingUser);
     if (requestingUser.role === "admin") return TasksRepository.get(id);
     return TasksRepository.getByIdAndCreatorOrAssignedTo(id, requestingUser.id);
   },
@@ -67,9 +68,14 @@ export const TasksService = {
     update: Partial<Omit<ITask, "id">>,
     requestingUser: { id: string; role: "admin" | "user" }
   ): Promise<ITask | undefined> {
+    logger.info("Updating task in service");
     if (requestingUser.role === "admin")
       return TasksRepository.updateById(id, update);
-    return TasksRepository.updateByIdAndCreator(id, requestingUser.id, update);
+    return TasksRepository.updateByIdAndCreatorOrAssignedTo(
+      id,
+      requestingUser.id,
+      update
+    );
   },
   async remove(
     id: string,

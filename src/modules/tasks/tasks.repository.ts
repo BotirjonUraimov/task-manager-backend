@@ -370,17 +370,39 @@ export const TasksRepository = {
     return task ? toDTO(task) : undefined;
   },
 
-  async updateByIdAndCreator(
+  async updateByIdAndCreatorOrAssignedTo(
     id: string,
     userId: string,
     update: Partial<Omit<ITask, "id">>
   ): Promise<ITask | undefined> {
-    const task = await TaskModel.findOneAndUpdate(
-      { _id: id, createdBy: userId },
-      update,
-      { new: true }
-    );
-    return task ? toDTO(task) : undefined;
+    try {
+      let isAssigned = false;
+
+      logger.info("Updating task in repository");
+      let task = await TaskModel.findOneAndUpdate(
+        { _id: id, createdBy: userId },
+        update,
+        { new: true }
+      );
+
+      if (!task) {
+        task = await TaskModel.findOneAndUpdate(
+          { _id: id, assignedTo: userId },
+          update,
+          { new: true }
+        );
+        isAssigned = true;
+      }
+      if (isAssigned) {
+        logger.info("Assigned task is updated");
+      } else {
+        logger.info("User's task is updated");
+      }
+      return task ? toDTO(task) : undefined;
+    } catch (error: any) {
+      logger.error("Error updating task in repository", error.message);
+      throw error;
+    }
   },
 
   async deleteById(id: string): Promise<boolean> {

@@ -20,10 +20,12 @@ export const TasksController = {
   },
 
   async get(req: Request, res: Response) {
+    console.log("Controller get - params:", req.params, "user:", req.user);
     const task = await TasksService.get(req.params.id, {
       id: req.user!.sub,
       role: req.user!.role,
     });
+    console.log("Controller get - result:", task);
     if (!task) return res.status(404).json({ error: "Task not found" });
     return res.json(task);
   },
@@ -42,6 +44,7 @@ export const TasksController = {
   },
 
   async update(req: Request, res: Response) {
+    logger.info("Updating task in controller");
     const updated = await TasksService.update(req.params.id, req.body, {
       id: req.user!.sub,
       role: req.user!.role,

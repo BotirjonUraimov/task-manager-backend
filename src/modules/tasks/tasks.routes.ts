@@ -90,6 +90,43 @@ import { authenticate, authorize } from "../../middlewares/auth";
  *         description: Task not found
  *       500:
  *         description: Internal server error
+ *   put:
+ *     summary: Update task
+ *     tags: [Tasks]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title, description, dueDate, priority, status]
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               dueDate:
+ *                 type: string
+ *                 format: date
+ *               priority:
+ *                 type: string
+ *                 enum: [low, medium, high]
+ *               status:
+ *                 type: string
+ *                 enum: [pending, in_progress, completed, cancelled]
+ *     responses:
+ *       200:
+ *         description: Task updated successfully
+ *       400:
+ *         description: Invalid request body
+ *       404:
+ *         description: Task not found
  */
 
 const router = Router();
@@ -100,29 +137,30 @@ router.get(
   authorize(["admin", "user"]),
   TasksController.list
 );
-router.get(
-  "/:id",
-  authenticate,
-  authorize(["admin", "user"]),
-  TasksController.get
-);
-router.post(
-  "/",
-  authenticate,
-  authorize(["admin", "user"]),
-  TasksController.create
-);
 router.put(
   "/:id",
   authenticate,
   authorize(["admin", "user"]),
   TasksController.update
 );
+router.get(
+  "/:id",
+  authenticate,
+  authorize(["admin", "user"]),
+  TasksController.get
+);
+
 router.delete(
   "/:id",
   authenticate,
   authorize(["admin", "user"]),
   TasksController.remove
+);
+router.post(
+  "/",
+  authenticate,
+  authorize(["admin", "user"]),
+  TasksController.create
 );
 
 export default router;
