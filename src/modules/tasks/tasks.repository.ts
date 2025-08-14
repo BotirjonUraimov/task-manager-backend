@@ -14,6 +14,7 @@ function toDTO(doc: TaskDocument): ITask {
     priority: doc.priority,
     status: doc.status,
     assignedTo: doc.assignedTo,
+    assignedBy: doc.assignedBy,
     tags: doc.tags,
     createdBy: doc.createdBy,
     createdAt: doc.createdAt,
@@ -240,10 +241,27 @@ export const TasksRepository = {
     console.log("userId", userId);
 
     const task = await TaskModel.aggregate([
-      { $match: { _id: new mongoose.Types.ObjectId(id) } },
+      {
+        $match: {
+          _id: new mongoose.Types.ObjectId(id),
+          $or: [{ createdBy: userId }, { assignedTo: userId }],
+        },
+      },
       {
         $addFields: {
           createdByObjId: { $toObjectId: "$createdBy" },
+          assignedByObjId: {
+            $cond: {
+              if: {
+                $and: [
+                  { $ne: ["$assignedBy", null] },
+                  { $ne: ["$assignedBy", ""] },
+                ],
+              },
+              then: { $toObjectId: "$assignedBy" },
+              else: null,
+            },
+          },
         },
       },
       {
@@ -261,6 +279,20 @@ export const TasksRepository = {
         },
       },
       {
+        $lookup: {
+          from: "users",
+          localField: "assignedByObjId",
+          foreignField: "_id",
+          as: "assignedByAdmin",
+        },
+      },
+      {
+        $unwind: {
+          path: "$assignedByAdmin",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
         $project: {
           _id: 0,
           id: { $toString: "$_id" },
@@ -270,7 +302,7 @@ export const TasksRepository = {
           priority: 1,
           status: 1,
           tags: 1,
-          createdByUser: {
+          createdBy: {
             $cond: {
               if: { $ne: ["$createdByUser", null] },
               then: {
@@ -282,14 +314,27 @@ export const TasksRepository = {
               else: null,
             },
           },
+          assignedBy: {
+            $cond: {
+              if: {
+                $and: [
+                  { $ne: ["$assignedByObjId", null] },
+                  { $ne: ["$assignedByAdmin", null] },
+                ],
+              },
+              then: {
+                id: { $toString: "$assignedByAdmin._id" },
+                name: "$assignedByAdmin.name",
+                email: "$assignedByAdmin.email",
+                role: "$assignedByAdmin.role",
+              },
+              else: null,
+            },
+          },
         },
       },
     ]).exec();
 
-    // const task = await TaskModel.findOne({
-    //   _id: id,
-    //   $or: [{ createdBy: userId }, { assignedTo: userId }],
-    // });
     return task[0] || undefined;
   },
 

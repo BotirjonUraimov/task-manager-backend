@@ -6,6 +6,7 @@ export interface ITask {
   priority: string;
   status: string;
   assignedTo: string | null;
+  assignedBy: string | null;
   tags: string[];
   createdBy: string;
   createdAt: Date;

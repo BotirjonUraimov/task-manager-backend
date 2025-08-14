@@ -10,6 +10,7 @@ const CreateTaskSchema = z.object({
   description: z.string().min(1),
   dueDate: z.coerce.date(),
   priority: z.enum(["low", "medium", "high"]),
+  assignedBy: z.string().optional(),
   status: z.enum(["pending", "in_progress", "completed", "cancelled"]),
   assignedTo: z.string().optional(),
   tags: z.array(z.string()).optional(),
@@ -44,9 +45,14 @@ export const TasksService = {
     try {
       logger.info("Creating task in service");
       const parsed = CreateTaskSchema.parse(input);
+      console.log("parsed", parsed);
+      if (parsed.assignedTo) {
+        parsed.assignedBy = requestingUser.id;
+      }
       const normalized = {
         ...parsed,
         assignedTo: parsed.assignedTo ?? null,
+        assignedBy: parsed.assignedBy ?? null,
         tags: parsed.tags ?? [],
         createdBy: requestingUser.id,
       } as Omit<ITask, "id"> & { createdBy: string } as any;
