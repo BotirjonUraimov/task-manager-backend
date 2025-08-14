@@ -3,7 +3,8 @@ import { IListOptions } from "../../common/interfaces/base/list-options.interfac
 import { ITask } from "../../common/interfaces/tasks/task.interface";
 import { TaskDocument, TaskModel } from "./tasks.model";
 import logger from "../../lib/logger";
-import mongoose from "mongoose";
+import mongoose, { FilterQuery, PipelineStage } from "mongoose";
+import { AnalyticsFilter } from "../../common/interfaces/tasks/analytics.interface";
 
 function toDTO(doc: TaskDocument): ITask {
   return {
@@ -609,5 +610,172 @@ export const TasksRepository = {
       logger.error("Error deleting task in repository", error.message);
       throw error;
     }
+  },
+
+  async analytics(filter: AnalyticsFilter) {
+    const match: FilterQuery<any> = {};
+
+    if (filter.from || filter.to) {
+      match.createdAt = {};
+      if (filter.from) (match.createdAt as any).$gte = filter.from;
+      if (filter.to) (match.createdAt as any).$lte = filter.to;
+    }
+    if (filter.assignedTo) match.assignedTo = filter.assignedTo;
+    if (filter.createdBy) match.createdBy = filter.createdBy;
+    if (filter.status) match.status = filter.status;
+    if (filter.tags?.length) match.tags = { $in: filter.tags };
+
+    const now = new Date();
+
+    const pipeline = [
+      { $match: match },
+
+      {
+        $facet: {
+          // 1) Status breakdown
+          statusBreakdown: [
+            { $group: { _id: "$status", count: { $sum: 1 } } },
+            { $project: { _id: 0, status: "$_id", count: 1 } },
+          ],
+
+          // 2) Overdue
+          overdue: [
+            { $match: { status: { $ne: "completed" }, dueDate: { $lt: now } } },
+            { $count: "count" },
+          ],
+
+          // 3) Upcoming (next 7 days)
+          upcoming: [
+            {
+              $match: {
+                status: { $in: ["pending", "in_progress"] },
+                dueDate: {
+                  $gte: now,
+                  $lte: new Date(now.getTime() + 7 * 24 * 3600 * 1000),
+                },
+              },
+            },
+            { $count: "count" },
+          ],
+
+          // 4) Task count per user (assignedTo)
+          perUserCounts: [
+            { $group: { _id: "$assignedTo", count: { $sum: 1 } } },
+            { $project: { _id: 0, assignedTo: "$_id", count: 1 } },
+            { $sort: { count: -1 } },
+          ],
+
+          // 5) Avg completion time per user (completed only)
+          avgCompletionPerUser: [
+            { $match: { status: "completed" } },
+            {
+              $project: {
+                assignedTo: 1,
+                durMs: { $subtract: ["$updatedAt", "$createdAt"] },
+              },
+            },
+            {
+              $group: {
+                _id: "$assignedTo",
+                avgMs: { $avg: "$durMs" },
+                n: { $sum: 1 },
+              },
+            },
+            { $project: { _id: 0, assignedTo: "$_id", avgMs: 1, n: 1 } },
+            { $sort: { avgMs: 1 } },
+          ],
+
+          // 6) Tags breakdown (Top 10)
+          tagsTop: [
+            { $unwind: "$tags" },
+            { $group: { _id: "$tags", count: { $sum: 1 } } },
+            { $project: { _id: 0, tag: "$_id", count: 1 } },
+            { $sort: { count: -1 } },
+            { $limit: 10 },
+          ],
+
+          // 7) Priority aging (overdue by priority)
+          priorityOverdue: [
+            { $match: { status: { $ne: "completed" }, dueDate: { $lt: now } } },
+            { $group: { _id: "$priority", overdue: { $sum: 1 } } },
+            { $project: { _id: 0, priority: "$_id", overdue: 1 } },
+          ],
+
+          // 8) Throughput (created vs completed per day, last 30 days)
+          createdPerDay: [
+            {
+              $match: {
+                createdAt: {
+                  $gte: new Date(now.getTime() - 30 * 24 * 3600 * 1000),
+                },
+              },
+            },
+            {
+              $group: {
+                _id: {
+                  $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
+                },
+                count: { $sum: 1 },
+              },
+            },
+            { $project: { _id: 0, day: "$_id", count: 1 } },
+            { $sort: { day: 1 } },
+          ],
+          completedPerDay: [
+            {
+              $match: {
+                status: "completed",
+                updatedAt: {
+                  $gte: new Date(now.getTime() - 30 * 24 * 3600 * 1000),
+                },
+              },
+            },
+            {
+              $group: {
+                _id: {
+                  $dateToString: { format: "%Y-%m-%d", date: "$updatedAt" },
+                },
+                count: { $sum: 1 },
+              },
+            },
+            { $project: { _id: 0, day: "$_id", count: 1 } },
+            { $sort: { day: 1 } },
+          ],
+
+          // 9) Stuck tasks (in_progress > 7 days unchanged)
+          stuckTasks: [
+            {
+              $match: {
+                status: "in_progress",
+                updatedAt: {
+                  $lt: new Date(now.getTime() - 7 * 24 * 3600 * 1000),
+                },
+              },
+            },
+            { $count: "count" },
+          ],
+        },
+      },
+      // facet chiqishlarini tozalab qo'yamiz
+      {
+        $project: {
+          statusBreakdown: 1,
+          overdue: { $ifNull: [{ $arrayElemAt: ["$overdue.count", 0] }, 0] },
+          upcoming: { $ifNull: [{ $arrayElemAt: ["$upcoming.count", 0] }, 0] },
+          perUserCounts: 1,
+          avgCompletionPerUser: 1,
+          tagsTop: 1,
+          priorityOverdue: 1,
+          createdPerDay: 1,
+          completedPerDay: 1,
+          stuckTasks: {
+            $ifNull: [{ $arrayElemAt: ["$stuckTasks.count", 0] }, 0],
+          },
+        },
+      },
+    ];
+
+    const [result] = await TaskModel.aggregate(pipeline as PipelineStage[]);
+    return result || {};
   },
 };

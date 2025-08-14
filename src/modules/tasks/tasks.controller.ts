@@ -76,4 +76,20 @@ export const TasksController = {
     if (!ok) return res.status(404).json({ error: "Task not found" });
     return res.status(204).send();
   },
+
+  async analytics(req: Request, res: Response) {
+    const analytics = await TasksService.analytics({
+      from: new Date(req.query.from as string),
+      to: new Date(req.query.to as string),
+      assignedTo: req.query.assignedTo as string,
+      createdBy: req.query.createdBy as string,
+      status: req.query.status as
+        | "pending"
+        | "in_progress"
+        | "completed"
+        | "cancelled",
+      tags: req.query.tags as string[],
+    });
+    return res.json(analytics);
+  },
 };

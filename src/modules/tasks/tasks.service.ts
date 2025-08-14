@@ -4,6 +4,7 @@ import { IBasePaginationResDTO } from "../../common/interfaces/base/base-paginat
 import { IListOptions } from "../../common/interfaces/base/list-options.interface";
 import { ITask } from "../../common/interfaces/tasks/task.interface";
 import logger from "../../lib/logger";
+import { AnalyticsFilter } from "../../common/interfaces/tasks/analytics.interface";
 
 const CreateTaskSchema = z.object({
   title: z.string().min(1),
@@ -14,6 +15,20 @@ const CreateTaskSchema = z.object({
   status: z.enum(["pending", "in_progress", "completed", "cancelled"]),
   assignedTo: z.string().optional(),
   tags: z.array(z.string()).optional(),
+});
+
+const qSchema = z.object({
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional(),
+  assignedTo: z.string().optional(),
+  createdBy: z.string().optional(),
+  status: z
+    .enum(["pending", "in_progress", "completed", "cancelled"])
+    .optional(),
+  tags: z
+    .string()
+    .transform((s) => s.split(",").map((t) => t.trim()))
+    .optional(),
 });
 
 export type CreateTaskInput = z.infer<typeof CreateTaskSchema>;
@@ -93,5 +108,15 @@ export const TasksService = {
   ): Promise<boolean> {
     if (requestingUser.role === "admin") return TasksRepository.deleteById(id);
     return TasksRepository.deleteByIdAndCreator(id, requestingUser.id);
+  },
+
+  async analytics(dto: AnalyticsFilter) {
+    logger.info("Analytics in service");
+    console.log("dto", dto);
+    const parsed = qSchema.safeParse(dto);
+    if (!parsed.success) {
+      throw new Error("Invalid query parameters");
+    }
+    return TasksRepository.analytics(parsed.data);
   },
 };

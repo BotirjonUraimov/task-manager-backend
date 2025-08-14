@@ -143,6 +143,14 @@ router.get(
   authorize(["user"]),
   TasksController.listAssigned
 );
+
+router.get(
+  "/analytics",
+  authenticate,
+  authorize(["admin"]),
+  TasksController.analytics
+);
+
 router.get(
   "/:id",
   authenticate,
