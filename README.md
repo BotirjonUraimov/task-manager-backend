@@ -61,7 +61,8 @@ LOG_LEVEL=info
 npm run dev
 ```
 
-- Serves API at `http://localhost:3000/api`
+- Landing page at `http://localhost:3000` (README instructions in browser)
+- API at `http://localhost:3000/api`
 - Swagger UI at `http://localhost:3000/docs`
 
 ### Build and start (production)

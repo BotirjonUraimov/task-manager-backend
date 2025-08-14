@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import path from "path";
 import routes from "./routes";
 import { setupSwagger } from "./lib/swagger";
 import { notFoundHandler } from "./middlewares/notFound";
@@ -34,6 +35,14 @@ app.use((req, res, next) => {
 app.get("/metrics", async (_req, res) => {
   res.set("Content-Type", register.contentType);
   res.end(await register.metrics());
+});
+
+// Serve static files from public directory
+app.use(express.static(path.join(__dirname, "public")));
+
+// Root route - serve the documentation page
+app.get("/", (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 // app.get("/health", (_req, res) => {
