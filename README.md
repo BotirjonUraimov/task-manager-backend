@@ -1,4 +1,4 @@
-## MohirDev Task Backend (Node.js, Express, TypeScript, Mongoose)
+## Task Backend (Node.js, Express, TypeScript, Mongoose)
 
 This is a clean, TypeScript-first REST API for managing tasks and users with role-based access control and JWT authentication. It includes Swagger docs, structured logging, and analytics for tasks.
 
@@ -11,6 +11,17 @@ This is a clean, TypeScript-first REST API for managing tasks and users with rol
 - Zod for validation
 - Swagger UI (`/docs`) generated from route files
 - Pino logger (pretty output in dev)
+
+### Project goals
+
+- Build a secure, production-ready REST API for task management with clear boundaries and RBAC
+- Model a full task lifecycle with status transitions, timestamps (started/completed/cancelled), and change history
+- Support assignment workflow with `assignedTo` and `assignedBy` audit information
+- Provide great DX: strict TypeScript, layered architecture (controller/service/repository), structured logging, and Swagger docs
+- Return lean, client-friendly DTOs via MongoDB aggregations (projections/lookups) and consistent pagination/sorting
+- Offer action-oriented analytics for admins (faceted stats, trends, and breakdowns) to inform prioritization
+- Be easy to extend: modular domains, shared interfaces/DTOs, and sensible Mongo indexes for common queries
+- Ensure reliability: centralized error handling, graceful shutdown, and environment-based configuration
 
 ---
 
