@@ -13,12 +13,22 @@ function toDTO(doc: TaskDocument): ITask {
     dueDate: doc.dueDate,
     priority: doc.priority,
     status: doc.status,
-    assignedTo: doc.assignedTo,
-    assignedBy: doc.assignedBy,
+    assignedTo: doc.assignedTo?.toString() || null,
+    assignedBy: doc.assignedBy?.toString() || null,
     tags: doc.tags,
-    createdBy: doc.createdBy,
+    createdBy: doc.createdBy?.toString(),
+    startedAt: doc.startedAt,
+    completedAt: doc.completedAt,
+    cancelledAt: doc.cancelledAt,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
+    history:
+      doc.history?.map((entry) => ({
+        from: entry.from,
+        to: entry.to,
+        at: entry.at,
+        by: entry.by?.toString() || null,
+      })) || [],
   };
 }
 
@@ -111,7 +121,7 @@ export const TasksRepository = {
                 priority: 1,
                 status: 1,
                 tags: 1,
-
+                history: 1,
                 createdAt: 1,
                 updatedAt: 1,
                 createdByUser: {
@@ -169,7 +179,7 @@ export const TasksRepository = {
     };
     const count = await TaskModel.countDocuments({ assignedTo: userId });
     const tasks = await TaskModel.aggregate([
-      { $match: { assignedTo: userId } },
+      { $match: { assignedTo: new mongoose.Types.ObjectId(userId) } },
       {
         $addFields: {
           assignedByObjId: { $toObjectId: "$assignedBy" },
@@ -202,6 +212,9 @@ export const TasksRepository = {
           priority: 1,
           status: 1,
           tags: 1,
+          startedAt: 1,
+          completedAt: 1,
+          cancelledAt: 1,
           assignedTo: 1,
           assignedByAdmin: {
             $cond: {
@@ -217,6 +230,7 @@ export const TasksRepository = {
           },
           createdAt: 1,
           updatedAt: 1,
+          history: 1,
         },
       },
     ]).exec();
@@ -243,9 +257,10 @@ export const TasksRepository = {
       [sortBy]: sortOrder === "asc" ? 1 : -1,
     };
     console.log("userId", userId);
+    console.log("typeof userId", typeof userId);
     const count = await TaskModel.countDocuments({ createdBy: userId });
     const tasks = await TaskModel.aggregate([
-      { $match: { createdBy: userId } },
+      { $match: { createdBy: new mongoose.Types.ObjectId(userId) } },
       { $sort: sort },
       { $skip: skip },
       { $limit: limit },
@@ -259,8 +274,12 @@ export const TasksRepository = {
           priority: 1,
           status: 1,
           tags: 1,
+          startedAt: 1,
+          completedAt: 1,
+          cancelledAt: 1,
           createdAt: 1,
           updatedAt: 1,
+          history: 1,
         },
       },
     ]).exec();
@@ -307,6 +326,10 @@ export const TasksRepository = {
           priority: 1,
           status: 1,
           tags: 1,
+          startedAt: 1,
+          completedAt: 1,
+          cancelledAt: 1,
+          history: 1,
           createdByUser: {
             $cond: {
               if: { $ne: ["$createdByUser", null] },
@@ -337,7 +360,10 @@ export const TasksRepository = {
       {
         $match: {
           _id: new mongoose.Types.ObjectId(id),
-          $or: [{ createdBy: userId }, { assignedTo: userId }],
+          $or: [
+            { createdBy: new mongoose.Types.ObjectId(userId) },
+            { assignedTo: new mongoose.Types.ObjectId(userId) },
+          ],
         },
       },
       {
@@ -395,6 +421,9 @@ export const TasksRepository = {
           priority: 1,
           status: 1,
           tags: 1,
+          startedAt: 1,
+          completedAt: 1,
+          cancelledAt: 1,
           createdBy: {
             $cond: {
               if: { $ne: ["$createdByUser", null] },
@@ -424,6 +453,7 @@ export const TasksRepository = {
               else: null,
             },
           },
+          history: 1,
         },
       },
     ]).exec();
@@ -439,10 +469,32 @@ export const TasksRepository = {
 
   async updateById(
     id: string,
+    userId: string,
     update: Partial<Omit<ITask, "id">>
   ): Promise<ITask | undefined> {
-    const task = await TaskModel.findByIdAndUpdate(id, update, { new: true });
-    return task ? toDTO(task) : undefined;
+    try {
+      console.log("update", update);
+
+      const existingTask = await TaskModel.findById(id);
+      if (!existingTask) {
+        throw new Error("Task not found");
+      }
+
+      if (update.status) {
+        const history = {
+          from: existingTask?.status,
+          to: update.status,
+          at: new Date(),
+          by: userId,
+        };
+        update.history = [...(update.history || []), history];
+      }
+      const task = await TaskModel.findByIdAndUpdate(id, update, { new: true });
+      return task ? toDTO(task) : undefined;
+    } catch (error: any) {
+      logger.error("Error updating task in repository", error.message);
+      throw error;
+    }
   },
 
   async updateByIdAndCreatorOrAssignedTo(
@@ -452,6 +504,33 @@ export const TasksRepository = {
   ): Promise<ITask | undefined> {
     try {
       let isAssigned = false;
+
+      let existingTask = await TaskModel.findOne({
+        _id: id,
+        $or: [{ createdBy: userId }, { assignedTo: userId }],
+      });
+      if (!existingTask) {
+        throw new Error("Task not found");
+      }
+
+      if (update.status) {
+        if (update.status === "in_progress") {
+          update.startedAt = new Date();
+        }
+        if (update.status === "completed") {
+          update.completedAt = new Date();
+        }
+        if (update.status === "cancelled") {
+          update.cancelledAt = new Date();
+        }
+        const history = {
+          from: existingTask?.status,
+          to: update.status,
+          at: new Date(),
+          by: userId,
+        };
+        update.history = [...(update.history || []), history];
+      }
 
       logger.info("Updating task in repository");
       let task = await TaskModel.findOneAndUpdate(

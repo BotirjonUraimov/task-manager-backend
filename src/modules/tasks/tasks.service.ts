@@ -80,7 +80,7 @@ export const TasksService = {
   ): Promise<ITask | undefined> {
     logger.info("Updating task in service");
     if (requestingUser.role === "admin")
-      return TasksRepository.updateById(id, update);
+      return TasksRepository.updateById(id, requestingUser.id, update);
     return TasksRepository.updateByIdAndCreatorOrAssignedTo(
       id,
       requestingUser.id,
