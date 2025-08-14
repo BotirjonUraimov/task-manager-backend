@@ -1,10 +1,12 @@
 import logger from "../../lib/logger";
 import { UserModel, UserDocument } from "./users.model";
+import bcrypt from "bcryptjs";
 
 export interface UserDTO {
   id: string;
   name: string;
   email: string;
+  password?: string;
   role: "admin" | "user";
 }
 
@@ -19,16 +21,64 @@ function toDTO(doc: UserDocument): UserDTO {
 
 export const UsersRepository = {
   async list(): Promise<UserDTO[]> {
-    logger.info("Listing users in repository");
-    const users = await UserModel.find().lean();
-    return users.map((d: any) => toDTO(d));
+    try {
+      logger.info("Listing users in repository");
+      const users = await UserModel.find().lean();
+      return users.map((d: any) => toDTO(d));
+    } catch (error: any) {
+      logger.error("Error listing users in repository", error.message);
+      throw error;
+    }
   },
-  async get(id: string): Promise<UserDTO | undefined> {
-    const user = await UserModel.findById(id);
-    return user ? toDTO(user) : undefined;
+
+  async getById(id: string): Promise<UserDTO | undefined> {
+    try {
+      logger.info("Getting user by id in repository");
+      const user = await UserModel.findById(id);
+      return user ? toDTO(user) : undefined;
+    } catch (error: any) {
+      logger.error("Error getting user by id in repository", error.message);
+      throw error;
+    }
   },
   async insert(dto: Omit<UserDTO, "id">): Promise<UserDTO> {
-    const user = await UserModel.create(dto);
-    return toDTO(user);
+    try {
+      logger.info("Inserting user in repository");
+      const user = await UserModel.create(dto);
+      return toDTO(user);
+    } catch (error: any) {
+      logger.error("Error inserting user in repository", error.message);
+      throw error;
+    }
+  },
+
+  async update(
+    id: string,
+    dto: Omit<UserDTO, "id">
+  ): Promise<UserDTO | undefined> {
+    try {
+      logger.info("Updating user in repository");
+      if (dto.password) {
+        const hash = await bcrypt.hash(dto.password, 10);
+        dto.password = hash;
+        logger.info("New password hashed in repository and updated");
+      }
+      const user = await UserModel.findByIdAndUpdate(id, dto, { new: true });
+      return user ? toDTO(user) : undefined;
+    } catch (error: any) {
+      logger.error("Error updating user in repository", error.message);
+      throw error;
+    }
+  },
+
+  async delete(id: string): Promise<boolean> {
+    try {
+      logger.info("Deleting user in repository");
+      const user = await UserModel.findByIdAndDelete(id);
+      return Boolean(user);
+    } catch (error: any) {
+      logger.error("Error deleting user in repository", error.message);
+      throw error;
+    }
   },
 };
