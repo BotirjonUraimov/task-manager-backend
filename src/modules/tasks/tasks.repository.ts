@@ -218,7 +218,12 @@ export const TasksRepository = {
           assignedTo: 1,
           assignedByAdmin: {
             $cond: {
-              if: { $ne: ["$assignedByAdmin", null] },
+              if: {
+                $and: [
+                  { $ne: ["$assignedBy", null] },
+                  { $ne: ["$assignedByAdmin", null] },
+                ],
+              },
               then: {
                 id: { $toString: "$assignedByAdmin._id" },
                 name: "$assignedByAdmin.name",
@@ -484,6 +489,9 @@ export const TasksRepository = {
       if (!existingTask) {
         throw new Error("Task not found");
       }
+      if (update.assignedTo) {
+        update.assignedBy = userId;
+      }
 
       if (update.status) {
         if (update.status === "in_progress") {
@@ -525,6 +533,10 @@ export const TasksRepository = {
       });
       if (!existingTask) {
         throw new Error("Task not found");
+      }
+
+      if (update.assignedTo) {
+        throw new Error("You are not allowed to assign this task");
       }
 
       if (update.status) {
