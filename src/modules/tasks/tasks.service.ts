@@ -1,10 +1,11 @@
 import z from "zod";
-import { TasksRepository, ITaskAdminRes } from "./tasks.repository";
+import { TasksRepository } from "./tasks.repository";
 import { IBasePaginationResDTO } from "../../common/interfaces/base/base-pagination.interface";
 import { IListOptions } from "../../common/interfaces/base/list-options.interface";
 import { ITask } from "../../common/interfaces/tasks/task.interface";
 import logger from "../../lib/logger";
 import { AnalyticsFilter } from "../../common/interfaces/tasks/analytics.interface";
+import { ITaskAdminRes } from "../../common/interfaces/tasks/admin-task-res.interface";
 
 const CreateTaskSchema = z.object({
   title: z.string().min(1),

@@ -5,6 +5,7 @@ import { TaskDocument, TaskModel } from "./tasks.model";
 import logger from "../../lib/logger";
 import mongoose, { FilterQuery, PipelineStage } from "mongoose";
 import { AnalyticsFilter } from "../../common/interfaces/tasks/analytics.interface";
+import { ITaskAdminRes } from "../../common/interfaces/tasks/admin-task-res.interface";
 
 function toDTO(doc: TaskDocument): ITask {
   return {
@@ -31,22 +32,6 @@ function toDTO(doc: TaskDocument): ITask {
         by: entry.by?.toString() || null,
       })) || [],
   };
-}
-
-export interface IUserPublic {
-  id: string;
-  name: string;
-  email: string;
-  role: "admin" | "user";
-}
-
-export interface ITaskAdminRes extends ITask {
-  createdByUser: IUserPublic | null;
-  assignedToUser: IUserPublic | null;
-}
-
-export interface ITaskUserRes extends ITask {
-  createdByUser: IUserPublic;
 }
 
 export const TasksRepository = {

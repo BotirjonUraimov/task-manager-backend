@@ -1,16 +1,9 @@
+import { IUser } from "../../common/interfaces/users/user.interface";
 import logger from "../../lib/logger";
 import { UserModel, UserDocument } from "./users.model";
 import bcrypt from "bcryptjs";
 
-export interface UserDTO {
-  id: string;
-  name: string;
-  email: string;
-  password?: string;
-  role: "admin" | "user";
-}
-
-function toDTO(doc: UserDocument): UserDTO {
+function toDTO(doc: UserDocument): IUser {
   return {
     id: doc._id.toString(),
     name: doc.name,
@@ -20,7 +13,7 @@ function toDTO(doc: UserDocument): UserDTO {
 }
 
 export const UsersRepository = {
-  async list(): Promise<UserDTO[]> {
+  async list(): Promise<IUser[]> {
     try {
       logger.info("Listing users in repository");
       const users = await UserModel.find().lean();
@@ -31,7 +24,7 @@ export const UsersRepository = {
     }
   },
 
-  async getById(id: string): Promise<UserDTO | undefined> {
+  async getById(id: string): Promise<IUser | undefined> {
     try {
       logger.info("Getting user by id in repository");
       const user = await UserModel.findById(id);
@@ -41,7 +34,7 @@ export const UsersRepository = {
       throw error;
     }
   },
-  async insert(dto: Omit<UserDTO, "id">): Promise<UserDTO> {
+  async insert(dto: Omit<IUser, "id">): Promise<IUser> {
     try {
       logger.info("Inserting new user in repository");
       if (dto.password) {
@@ -57,10 +50,7 @@ export const UsersRepository = {
     }
   },
 
-  async update(
-    id: string,
-    dto: Omit<UserDTO, "id">
-  ): Promise<UserDTO | undefined> {
+  async update(id: string, dto: Omit<IUser, "id">): Promise<IUser | undefined> {
     try {
       logger.info("Updating user in repository");
       if (dto.password) {
