@@ -1,21 +1,46 @@
 import pino from "pino";
-import { isDev } from "../config/env";
 import fs from "fs";
+import path from "path";
+import { isDev } from "../config/env";
 
-const logStream = fs.createWriteStream("/var/log/express.log", { flags: "a" });
+const LOG_FILE = process.env.LOG_FILE || "/var/log/express.log";
+const LOG_LEVEL = process.env.LOG_LEVEL || (isDev ? "debug" : "info");
 
-const logger = pino(
-  {
+function createDevLogger() {
+  return pino({
     name: "app",
-    level: isDev ? "debug" : "info",
-    transport: isDev
-      ? {
-          target: "pino-pretty",
-          options: { colorize: true, translateTime: "SYS:standard" },
-        }
-      : undefined,
-  },
-  logStream
-);
+    level: LOG_LEVEL,
+    transport: {
+      target: "pino-pretty",
+      options: { colorize: true, translateTime: "SYS:standard" },
+    },
+  });
+}
 
+function createProdLogger() {
+  let destination: pino.DestinationStream | NodeJS.WritableStream =
+    pino.destination(1);
+
+  try {
+    const dir = path.dirname(LOG_FILE);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.appendFileSync(LOG_FILE, "");
+    destination = pino.destination({
+      dest: LOG_FILE,
+      mkdir: true,
+      sync: false,
+    });
+  } catch {}
+
+  return pino(
+    {
+      name: "app",
+      level: LOG_LEVEL,
+      timestamp: pino.stdTimeFunctions.isoTime,
+    },
+    destination
+  );
+}
+
+const logger = isDev ? createDevLogger() : createProdLogger();
 export default logger;
