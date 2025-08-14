@@ -32,6 +32,7 @@ export async function login(email: string, password: string) {
       expiresIn: jwtExpiresIn as unknown as any,
     };
     const accessToken = jwt.sign(payload, secret, options);
+    console.log("accessToken:", accessToken);
     logger.info("User logged in successfully in service");
     return { accessToken };
   } catch (error) {
