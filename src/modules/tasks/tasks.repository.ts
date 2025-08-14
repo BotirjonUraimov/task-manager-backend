@@ -13,6 +13,9 @@ function toDTO(doc: TaskDocument): ITask {
     status: doc.status,
     assignedTo: doc.assignedTo,
     tags: doc.tags,
+    createdBy: doc.createdBy,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
   };
 }
 

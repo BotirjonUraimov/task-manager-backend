@@ -7,4 +7,7 @@ export interface ITask {
   status: string;
   assignedTo: string | null;
   tags: string[];
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
