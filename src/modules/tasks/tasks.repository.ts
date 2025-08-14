@@ -3,6 +3,7 @@ import { IListOptions } from "../../common/interfaces/base/list-options.interfac
 import { ITask } from "../../common/interfaces/tasks/task.interface";
 import { TaskDocument, TaskModel } from "./tasks.model";
 import logger from "../../lib/logger";
+import mongoose from "mongoose";
 
 function toDTO(doc: TaskDocument): ITask {
   return {
@@ -30,6 +31,10 @@ export interface IUserPublic {
 export interface ITaskAdminRes extends ITask {
   createdByUser: IUserPublic | null;
   assignedToUser: IUserPublic | null;
+}
+
+export interface ITaskUserRes extends ITask {
+  createdByUser: IUserPublic;
 }
 
 export const TasksRepository = {
@@ -177,8 +182,54 @@ export const TasksRepository = {
   },
 
   async get(id: string): Promise<ITask | undefined> {
-    const task = await TaskModel.findById(id);
-    return task ? toDTO(task) : undefined;
+    const task = await TaskModel.aggregate([
+      { $match: { _id: new mongoose.Types.ObjectId(id) } },
+      {
+        $addFields: {
+          createdByObjId: { $toObjectId: "$createdBy" },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "createdByObjId",
+          foreignField: "_id",
+          as: "createdByUser",
+        },
+      },
+      {
+        $unwind: {
+          path: "$createdByUser",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          id: { $toString: "$_id" },
+          title: 1,
+          description: 1,
+          dueDate: 1,
+          priority: 1,
+          status: 1,
+          tags: 1,
+          createdByUser: {
+            $cond: {
+              if: { $ne: ["$createdByUser", null] },
+              then: {
+                id: { $toString: "$createdByUser._id" },
+                name: "$createdByUser.name",
+                email: "$createdByUser.email",
+                role: "$createdByUser.role",
+              },
+              else: null,
+            },
+          },
+        },
+      },
+    ]).exec();
+
+    return task[0] || undefined;
   },
 
   async getByIdAndCreator(

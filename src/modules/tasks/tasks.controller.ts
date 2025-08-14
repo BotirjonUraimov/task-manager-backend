@@ -18,6 +18,7 @@ export const TasksController = {
     );
     return res.json(tasks);
   },
+
   async get(req: Request, res: Response) {
     const task = await TasksService.get(req.params.id, {
       id: req.user!.sub,
@@ -26,6 +27,7 @@ export const TasksController = {
     if (!task) return res.status(404).json({ error: "Task not found" });
     return res.json(task);
   },
+
   async create(req: Request, res: Response) {
     logger.info("Creating task in controller");
     if (!req.body || typeof req.body !== "object") {
@@ -38,6 +40,7 @@ export const TasksController = {
     });
     return res.status(201).json(task);
   },
+
   async update(req: Request, res: Response) {
     const updated = await TasksService.update(req.params.id, req.body, {
       id: req.user!.sub,
@@ -46,6 +49,7 @@ export const TasksController = {
     if (!updated) return res.status(404).json({ error: "Task not found" });
     return res.json(updated);
   },
+
   async remove(req: Request, res: Response) {
     const ok = await TasksService.remove(req.params.id, {
       id: req.user!.sub,

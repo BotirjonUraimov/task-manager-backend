@@ -8,6 +8,7 @@ export interface TaskDocument extends Document {
   priority: "low" | "medium" | "high";
   status: "pending" | "in_progress" | "completed" | "cancelled";
   assignedTo: string | null;
+  assignedBy: string | null;
   tags: string[];
   createdBy: string;
   createdAt: Date;
@@ -22,6 +23,7 @@ const TaskSchema: Schema<TaskDocument> = new Schema(
     priority: { type: String, required: true },
     status: { type: String, required: true },
     assignedTo: { type: String, required: false },
+    assignedBy: { type: String, required: false },
     tags: { type: [String], required: false },
     createdBy: { type: String, required: true },
   },
