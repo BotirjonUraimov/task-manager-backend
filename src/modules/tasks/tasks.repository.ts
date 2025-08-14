@@ -632,19 +632,17 @@ export const TasksRepository = {
 
       {
         $facet: {
-          // 1) Status breakdown
           statusBreakdown: [
             { $group: { _id: "$status", count: { $sum: 1 } } },
             { $project: { _id: 0, status: "$_id", count: 1 } },
           ],
 
-          // 2) Overdue
           overdue: [
             { $match: { status: { $ne: "completed" }, dueDate: { $lt: now } } },
             { $count: "count" },
           ],
 
-          // 3) Upcoming (next 7 days)
+          //  Kelgusi (keyingi 7 kun)
           upcoming: [
             {
               $match: {
@@ -658,14 +656,6 @@ export const TasksRepository = {
             { $count: "count" },
           ],
 
-          // 4) Task count per user (assignedTo)
-          perUserCounts: [
-            { $group: { _id: "$assignedTo", count: { $sum: 1 } } },
-            { $project: { _id: 0, assignedTo: "$_id", count: 1 } },
-            { $sort: { count: -1 } },
-          ],
-
-          // 5) Avg completion time per user (completed only)
           avgCompletionPerUser: [
             { $match: { status: "completed" } },
             {
@@ -685,7 +675,6 @@ export const TasksRepository = {
             { $sort: { avgMs: 1 } },
           ],
 
-          // 6) Tags breakdown (Top 10)
           tagsTop: [
             { $unwind: "$tags" },
             { $group: { _id: "$tags", count: { $sum: 1 } } },
@@ -694,14 +683,12 @@ export const TasksRepository = {
             { $limit: 10 },
           ],
 
-          // 7) Priority aging (overdue by priority)
           priorityOverdue: [
             { $match: { status: { $ne: "completed" }, dueDate: { $lt: now } } },
             { $group: { _id: "$priority", overdue: { $sum: 1 } } },
             { $project: { _id: 0, priority: "$_id", overdue: 1 } },
           ],
 
-          // 8) Throughput (created vs completed per day, last 30 days)
           createdPerDay: [
             {
               $match: {
@@ -720,6 +707,28 @@ export const TasksRepository = {
             },
             { $project: { _id: 0, day: "$_id", count: 1 } },
             { $sort: { day: 1 } },
+          ],
+          perUserCounts: [
+            { $group: { _id: "$assignedTo", count: { $sum: 1 } } },
+            {
+              $lookup: {
+                from: "users",
+                localField: "_id",
+                foreignField: "_id",
+                as: "user",
+              },
+            },
+            { $addFields: { user: { $arrayElemAt: ["$user", 0] } } },
+            {
+              $project: {
+                _id: 0,
+                assignedTo: "$_id",
+                count: 1,
+                userName: "$user.name",
+                userEmail: "$user.email",
+              },
+            },
+            { $sort: { count: -1 } },
           ],
           completedPerDay: [
             {
@@ -742,7 +751,6 @@ export const TasksRepository = {
             { $sort: { day: 1 } },
           ],
 
-          // 9) Stuck tasks (in_progress > 7 days unchanged)
           stuckTasks: [
             {
               $match: {
@@ -756,7 +764,6 @@ export const TasksRepository = {
           ],
         },
       },
-      // facet chiqishlarini tozalab qo'yamiz
       {
         $project: {
           statusBreakdown: 1,
