@@ -1,7 +1,7 @@
 import z from "zod";
 import { TasksRepository } from "./tasks.repository";
-import { IBasePaginationResDTO } from "../../common/interfaces/base-pagination.interface";
-import { IListOptions } from "../../common/interfaces/list-options.interface";
+import { IBasePaginationResDTO } from "../../common/interfaces/base/base-pagination.interface";
+import { IListOptions } from "../../common/interfaces/base/list-options.interface";
 import { ITask } from "../../common/interfaces/tasks/task.interface";
 
 const CreateTaskSchema = z.object({
