@@ -9,7 +9,7 @@ This is a clean, TypeScript-first REST API for managing tasks and users with rol
 - Mongoose 8 (MongoDB)
 - JWT auth (HS256)
 - Zod for validation
-- Swagger UI (`/docs`) generated from route files
+- Swagger UI (`/docs`) generated from route files _(not completed)_
 - Pino logger (pretty output in dev)
 
 ### Project goals
