@@ -1,6 +1,7 @@
 import { IBasePaginationResDTO } from "../../common/interfaces/base/base-pagination.interface";
 import { IListOptions } from "../../common/interfaces/base/list-options.interface";
 import { ITask } from "../../common/interfaces/tasks/task.interface";
+import { UserModel } from "../users/users.model";
 import { TaskDocument, TaskModel } from "./tasks.model";
 import logger from "../../lib/logger";
 
@@ -20,10 +21,22 @@ function toDTO(doc: TaskDocument): ITask {
   };
 }
 
+export interface IUserPublic {
+  id: string;
+  name: string;
+  email: string;
+  role: "admin" | "user";
+}
+
+export interface ITaskAdminRes extends ITask {
+  createdByUser: IUserPublic | null;
+  assignedToUser: IUserPublic | null;
+}
+
 export const TasksRepository = {
   async listAll(
     options: IListOptions = {}
-  ): Promise<IBasePaginationResDTO<ITask>> {
+  ): Promise<IBasePaginationResDTO<ITaskAdminRes>> {
     const {
       page = 1,
       limit = 10,
@@ -42,8 +55,30 @@ export const TasksRepository = {
       .lean();
 
     const dtoTasks = tasks.map((d: any) => toDTO(d));
+
+    const creatorIds = Array.from(new Set(dtoTasks.map((t) => t.createdBy)));
+    const assigneeIds = Array.from(
+      new Set(
+        dtoTasks.map((t) => t.assignedTo).filter((v): v is string => Boolean(v))
+      )
+    );
+    const allUserIds = Array.from(new Set([...creatorIds, ...assigneeIds]));
+    const users = await UserModel.find({ _id: { $in: allUserIds } }).lean();
+    const userMap = new Map<string, IUserPublic>(
+      users.map((u: any) => [
+        u._id.toString(),
+        { id: u._id.toString(), name: u.name, email: u.email, role: u.role },
+      ])
+    );
+
+    const data: ITaskAdminRes[] = dtoTasks.map((t) => ({
+      ...t,
+      createdByUser: userMap.get(t.createdBy) ?? null,
+      assignedToUser: t.assignedTo ? userMap.get(t.assignedTo) ?? null : null,
+    }));
+
     return {
-      data: dtoTasks,
+      data,
       total: count,
       page,
       limit,

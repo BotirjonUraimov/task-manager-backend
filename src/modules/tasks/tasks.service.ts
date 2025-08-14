@@ -1,5 +1,5 @@
 import z from "zod";
-import { TasksRepository } from "./tasks.repository";
+import { TasksRepository, ITaskAdminRes } from "./tasks.repository";
 import { IBasePaginationResDTO } from "../../common/interfaces/base/base-pagination.interface";
 import { IListOptions } from "../../common/interfaces/base/list-options.interface";
 import { ITask } from "../../common/interfaces/tasks/task.interface";
@@ -24,7 +24,7 @@ export const TasksService = {
       role: "admin" | "user";
     },
     options: IListOptions = {}
-  ): Promise<IBasePaginationResDTO<ITask>> {
+  ): Promise<IBasePaginationResDTO<ITask | ITaskAdminRes>> {
     if (requestingUser.role === "admin")
       return TasksRepository.listAll(options);
     return TasksRepository.listByCreator(requestingUser.id, options);
