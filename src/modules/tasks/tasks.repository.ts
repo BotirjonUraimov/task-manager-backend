@@ -97,6 +97,7 @@ export const TasksRepository = {
             },
             {
               $project: {
+                _id: 0,
                 id: { $toString: "$_id" },
                 title: 1,
                 description: 1,
