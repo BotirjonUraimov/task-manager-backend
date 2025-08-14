@@ -21,7 +21,9 @@ export const UsersService = {
     return UsersRepository.getById(id);
   },
   async create(input: unknown): Promise<UserDTO> {
+    logger.info("Creating user in service");
     const parsed = CreateUserSchema.parse(input);
+    logger.info("User parsed in service");
     return UsersRepository.insert(parsed);
   },
   async update(id: string, input: unknown): Promise<UserDTO | undefined> {

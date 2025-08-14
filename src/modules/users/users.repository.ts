@@ -43,7 +43,12 @@ export const UsersRepository = {
   },
   async insert(dto: Omit<UserDTO, "id">): Promise<UserDTO> {
     try {
-      logger.info("Inserting user in repository");
+      logger.info("Inserting new user in repository");
+      if (dto.password) {
+        const hash = await bcrypt.hash(dto.password, 10);
+        dto.password = hash;
+        logger.info("New password hashed in repository and inserted");
+      }
       const user = await UserModel.create(dto);
       return toDTO(user);
     } catch (error: any) {
