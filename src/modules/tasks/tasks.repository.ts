@@ -167,12 +167,16 @@ export const TasksRepository = {
     const sort: Record<string, 1 | -1> = {
       [sortBy]: sortOrder === "asc" ? 1 : -1,
     };
+    console.log("userId", userId);
     const count = await TaskModel.countDocuments({ createdBy: userId });
     const tasks = await TaskModel.find({ createdBy: userId })
       .sort(sort)
       .skip(skip)
       .limit(limit)
       .lean();
+
+    console.log("tasks", tasks);
+    console.log("count", count);
     const dtoTasks = tasks.map((d: any) => toDTO(d));
     return {
       data: dtoTasks,
