@@ -6,6 +6,7 @@ import jwt, {
 } from "jsonwebtoken";
 import { jwtExpiresIn, jwtSecret } from "../../config/env";
 import { UserModel } from "../users/users.model";
+import logger from "../../lib/logger";
 
 export async function register(
   name: string,
@@ -19,13 +20,22 @@ export async function register(
 }
 
 export async function login(email: string, password: string) {
-  const user = await UserModel.findOne({ email });
-  if (!user) throw new Error("Invalid credentials");
-  const ok = await bcrypt.compare(password, user.password);
-  if (!ok) throw new Error("Invalid credentials");
-  const payload: JwtPayload = { sub: user.id, role: user.role } as any;
-  const secret: Secret = jwtSecret as unknown as Secret;
-  const options: SignOptions = { expiresIn: jwtExpiresIn as unknown as any };
-  const accessToken = jwt.sign(payload, secret, options);
-  return { accessToken };
+  logger.info("Login request in service");
+  try {
+    const user = await UserModel.findOne({ email });
+    if (!user) throw new Error("Invalid credentials");
+    const ok = await bcrypt.compare(password, user.password);
+    if (!ok) throw new Error("Invalid credentials");
+    const payload: JwtPayload = { sub: user.id, role: user.role } as any;
+    const secret: Secret = jwtSecret as unknown as Secret;
+    const options: SignOptions = {
+      expiresIn: jwtExpiresIn as unknown as any,
+    };
+    const accessToken = jwt.sign(payload, secret, options);
+    logger.info("User logged in successfully in service");
+    return { accessToken };
+  } catch (error) {
+    logger.error({ error }, "Login failed in service");
+    throw error;
+  }
 }
