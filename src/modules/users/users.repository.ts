@@ -80,9 +80,17 @@ export const UsersRepository = {
     try {
       logger.info("Deleting user in repository");
       const user = await UserModel.findByIdAndDelete(id);
-      return Boolean(user);
+      if (!user) {
+        logger.error("User not found in repository");
+        throw new Error("User not found");
+      }
+      logger.info("User deleted in repository");
+      return true;
     } catch (error: any) {
       logger.error("Error deleting user in repository", error.message);
+      if (error.message.includes("Cast to ObjectId failed for value")) {
+        throw new Error("User id is not valid");
+      }
       throw error;
     }
   },
