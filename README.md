@@ -133,6 +133,8 @@ src/
     users/
       users.routes.ts
       users.controller.ts
+      users.repository.ts
+      users.service.ts
       users.model.ts
     tasks/
       tasks.routes.ts
