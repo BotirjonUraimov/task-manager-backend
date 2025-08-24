@@ -34,7 +34,7 @@ Ushbu Kodeks loyiha maydonlari ichida hamda loyiha yoki hamjamiyatni rasmiy tarz
 
 ## Qoidabuzarlikni Xabar Qilish
 
-Qabul qilib bo‘lmaydigan xatti-harakatlar to‘g‘risida xabar berish uchun quyidagi aloqa manzilidan foydalaning: report@yourdomain.com. Barcha shikoyatlar tezkor, adolatli va izchil tarzda ko‘rib chiqiladi va tergov qilinadi. Biz barcha shikoyat beruvchilarning maxfiyligini imkon qadar saqlashga harakat qilamiz.
+Qabul qilib bo‘lmaydigan xatti-harakatlar to‘g‘risida xabar berish uchun quyidagi aloqa manzilidan foydalaning: daviduraimov@gmail.com. Barcha shikoyatlar tezkor, adolatli va izchil tarzda ko‘rib chiqiladi va tergov qilinadi. Biz barcha shikoyat beruvchilarning maxfiyligini imkon qadar saqlashga harakat qilamiz.
 
 ## Qoidabuzarliklar Uchun Ta’sir Choralarini Qo‘llash Qo‘llanmasi
 
